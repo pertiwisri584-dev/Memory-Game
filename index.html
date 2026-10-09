@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>INGAT URUTANNYA - Game Memori Lansia</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Google: Poppins & Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800;900&family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        * {
+            font-family: 'Poppins', 'Inter', sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 35%, #fff7ed 70%, #fef2f2 100%);
+            min-height: 100vh;
+        }
+
+        /* 3D Card Floating Animation */
+        @keyframes cardFloat {
+            0% { transform: translateY(0px) rotate(0deg) scale(1); }
+            50% { transform: translateY(-14px) rotate(2deg) scale(1.03); }
+            100% { transform: translateY(0px) rotate(0deg) scale(1); }
+        }
+
+        .floating-hero-card {
+            animation: cardFloat 3.8s ease-in-out infinite;
+        }
+
+        /* Card Drop / Pop Effect */
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            70% { transform: scale(1.08); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .animate-pop-in {
+            animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        /* Button Press Feeling */
+        .card-btn {
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .card-btn:hover {
+            transform: translateY(-2px);
+        }
+        .card-btn:active {
+            transform: scale(0.93) translateY(1px);
+        }
+
+        /* Vibrant Shadow Styling */
+        .color-shadow-emerald {
+            box-shadow: 0 12px 25px -5px rgba(16, 185, 129, 0.35), 0 8px 10px -6px rgba(16, 185, 129, 0.2);
+        }
+        .color-shadow-amber {
+            box-shadow: 0 12px 25px -5px rgba(245, 158, 11, 0.35), 0 8px 10px -6px rgba(245, 158, 11, 0.2);
+        }
+        .color-shadow-rose {
+            box-shadow: 0 12px 25px -5px rgba(244, 63, 94, 0.35), 0 8px 10px -6px rgba(244, 63, 94, 0.2);
+        }
+        .depth-shadow-lg {
+            box-shadow: 0 20px 35px -10px rgba(15, 23, 42, 0.18), 0 10px 15px -5px rgba(15, 23, 42, 0.1);
+        }
+
+        /* Slot Borders */
+        .slot-border-empty {
+            border: 3px dashed #38bdf8;
+            background: rgba(255, 255, 255, 0.85);
+        }
+        .slot-border-filled {
+            border: 3px solid #10b981;
+            background: #ffffff;
+        }
+
+        /* Vibrant Card Inner Gradient Border */
+        .vibrant-card-border {
+            border: 4px solid #ffffff;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+    </style>
+</head>
+<body class="text-slate-800 flex flex-col justify-between min-h-screen p-2 sm:p-4 md:p-6 overflow-x-hidden">
+
+    <!-- TOP NAVIGATION BAR -->
+    <header class="w-full max-w-4xl mx-auto flex items-center justify-between bg-white/95 backdrop-blur-md px-4 py-3 rounded-2xl border-2 border-emerald-200 depth-shadow-lg mb-4">
+        <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center font-black text-2xl shadow-md border-2 border-white">
+                🧠
+            </div>
+            <div>
+                <h1 class="text-xl sm:text-2xl font-black text-emerald-900 tracking-tight leading-none">INGAT URUTANNYA</h1>
+                <p class="text-xs sm:text-sm text-emerald-600 font-bold hidden sm:block">Game Memori Lansia & Keluarga</p>
+            </div>
+        </div>
+
+        <!-- Controls Header Right -->
+        <div class="flex items-center space-x-2">
+            <!-- Sound Toggle Button -->
+            <button id="btnToggleAudio" onclick="toggleAudio()" class="flex items-center space-x-1 px-3.5 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-extrabold text-sm transition card-btn border-2 border-amber-300 shadow-sm" title="Aktifkan/Matikan Suara">
+                <span id="audioIcon" class="text-lg">🔊</span>
+                <span id="audioText" class="hidden md:inline">Suara: AKTIF</span>
+            </button>
+
+            <!-- Pause Button (Hidden on Menu) -->
+            <button id="btnPauseGame" onclick="openPauseModal()" class="hidden px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-sm transition card-btn border-2 border-slate-300 shadow-sm">
+                ⏸️ <span class="hidden sm:inline">Jeda</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN GAME CONTAINER -->
+    <main class="w-full max-w-4xl mx-auto flex-1 flex flex-col justify-center items-center my-auto">
+
+        <!-- SCREEN 1: COVER / MAIN MENU -->
+        <section id="screenMenu" class="w-full flex flex-col items-center text-center space-y-6 py-2">
+            
+            <!-- 3D Colorful Playing Cards Illustration Hero -->
+            <div class="floating-hero-card relative w-72 h-60 sm:w-96 sm:h-72 my-1 flex items-center justify-center">
+                <!-- Background Decorative Glow -->
+                <div class="absolute inset-0 bg-gradient-to-r from-amber-300 via-rose-300 to-emerald-300 rounded-full blur-2xl opacity-60"></div>
+                
+                <!-- Stacked 3D Cards SVG -->
+                <svg class="w-full h-full drop-shadow-2xl" viewBox="0 0 380 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Left Card (Purple Butterfly) -->
+                    <g transform="translate(35, 45) rotate(-16)">
+                        <rect width="125" height="170" rx="20" fill="url(#heroCardGrad1)" stroke="#ffffff" stroke-width="5"/>
+                        <rect x="8" y="8" width="109" height="154" rx="14" fill="#ffffff" opacity="0.25"/>
+                        <circle cx="62" cy="85" r="32" fill="#ffffff"/>
+                        <!-- Butterfly Icon -->
+                        <path d="M 50 70 Q 30 50 45 80 Q 30 100 55 90 Z" fill="#ec4899"/>
+                        <path d="M 74 70 Q 94 50 79 80 Q 94 100 69 90 Z" fill="#ec4899"/>
+                        <ellipse cx="62" cy="85" rx="4" ry="18" fill="#831843"/>
+                    </g>
+
+                    <!-- Right Card (Cyan Fish) -->
+                    <g transform="translate(210, 35) rotate(16)">
+                        <rect width="125" height="170" rx="20" fill="url(#heroCardGrad2)" stroke="#ffffff" stroke-width="5"/>
+                        <rect x="8" y="8" width="109" height="154" rx="14" fill="#ffffff" opacity="0.25"/>
+                        <circle cx="62" cy="85" r="32" fill="#ffffff"/>
+                        <!-- Fish Icon -->
+                        <path d="M 45 85 Q 65 65 80 85 Q 65 105 45 85 Z" fill="#0284c7"/>
+                        <polygon points="45,85 30,70 30,100" fill="#0369a1"/>
+                        <circle cx="73" cy="80" r="3" fill="#ffffff"/>
+                    </g>
+
+                    <!-- Center Card (Main Apple) -->
+                    <g transform="translate(120, 40)">
+                        <rect x="6" y="10" width="140" height="190" rx="22" fill="#047857"/>
+                        <rect width="140" height="190" rx="22" fill="url(#heroCardGrad3)" stroke="#ffffff" stroke-width="5"/>
+                        <rect x="10" y="10" width="120" height="170" rx="15" fill="#ffffff" opacity="0.3"/>
+                        
+                        <circle cx="70" cy="95" r="42" fill="#ffffff"/>
+                        <!-- Glossy Red Apple -->
+                        <path d="M 70 70 C 52 55 38 75 42 102 C 46 122 65 125 70 120 C 75 125 94 122 98 102 C 102 75 88 55 70 70 Z" fill="url(#appleGradHero)"/>
+                        <path d="M 70 70 Q 75 60 80 56" stroke="#78350f" stroke-width="4" stroke-linecap="round"/>
+                        <path d="M 72 63 Q 85 58 82 70 Z" fill="#22c55e"/>
+                        <ellipse cx="58" cy="82" rx="4" ry="10" fill="#ffffff" opacity="0.6" transform="rotate(-25 58 82)"/>
+                    </g>
+
+                    <!-- Gradients -->
+                    <defs>
+                        <linearGradient id="heroCardGrad1" x1="0" y1="0" x2="125" y2="170" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stop-color="#a855f7"/>
+                            <stop offset="100%" stop-color="#ec4899"/>
+                        </linearGradient>
+                        <linearGradient id="heroCardGrad2" x1="0" y1="0" x2="125" y2="170" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stop-color="#38bdf8"/>
+                            <stop offset="100%" stop-color="#0284c7"/>
+                        </linearGradient>
+                        <linearGradient id="heroCardGrad3" x1="0" y1="0" x2="140" y2="190" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stop-color="#10b981"/>
+                            <stop offset="100%" stop-color="#059669"/>
+                        </linearGradient>
+                        <linearGradient id="appleGradHero" x1="40" y1="60" x2="100" y2="125" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stop-color="#f87171"/>
+                            <stop offset="40%" stop-color="#ef4444"/>
+                            <stop offset="100%" stop-color="#b91c1c"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+
+            <!-- Title Banner -->
+            <div class="space-y-2 max-w-lg px-2">
+                <h2 class="text-3xl sm:text-4xl font-black text-slate-800 tracking-tight">INGAT URUTANNYA</h2>
+                <p class="text-base sm:text-lg text-slate-600 font-bold">
+                    Permainan mengasah daya ingat jangka pendek yang ramah lansia, seru, dan sangat berwarna!
+                </p>
+            </div>
+
+            <!-- Menu Action Buttons -->
+            <div class="w-full max-w-xs sm:max-w-md space-y-3.5 pt-2">
+                <button onclick="goToLevelSelect()" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-xl sm:text-2xl color-shadow-emerald card-btn flex items-center justify-center space-x-3 border-2 border-white">
+                    <span class="text-2xl">▶️</span>
+                    <span>Mulai Bermain</span>
+                </button>
+
+                <button onclick="openInstructionsModal()" class="w-full py-3.5 px-6 rounded-2xl bg-white hover:bg-slate-50 text-emerald-900 font-extrabold text-lg sm:text-xl depth-shadow-lg card-btn flex items-center justify-center space-x-3 border-2 border-emerald-300">
+                    <span class="text-2xl">📖</span>
+                    <span>Cara Bermain</span>
+                </button>
+
+                <button onclick="openAboutModal()" class="w-full py-3.5 px-6 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 font-extrabold text-lg sm:text-xl depth-shadow-lg card-btn flex items-center justify-center space-x-3 border-2 border-slate-300">
+                    <span class="text-2xl">💡</span>
+                    <span>Tentang Game</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- SCREEN 2: LEVEL SELECTION -->
+        <section id="screenLevel" class="hidden w-full max-w-2xl flex-col items-center text-center space-y-6 py-4">
+            <div class="space-y-2">
+                <span class="px-4 py-1.5 bg-emerald-100 text-emerald-900 rounded-full text-sm font-black uppercase tracking-wider border border-emerald-300">
+                    Langkah 1
+                </span>
+                <h2 class="text-2xl sm:text-3xl font-black text-slate-800">Pilih Tingkat Kesulitan</h2>
+                <p class="text-slate-600 font-bold text-base">Pilih level yang paling nyaman untuk Anda:</p>
+            </div>
+
+            <!-- Difficulty Cards -->
+            <div class="w-full grid grid-cols-1 sm:grid-cols-3 gap-4 px-2">
+                <!-- Easy -->
+                <button onclick="startGame('mudah')" class="p-5 rounded-3xl bg-gradient-to-b from-emerald-50 to-emerald-100/60 hover:from-emerald-100 hover:to-emerald-200/80 border-4 border-emerald-400 color-shadow-emerald card-btn flex flex-col items-center text-center space-y-3 text-emerald-950 group">
+                    <div class="w-20 h-20 rounded-2xl bg-emerald-500 text-white flex items-center justify-center text-4xl font-black shadow-md border-2 border-white group-hover:scale-110 transition">
+                        🌱
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-black text-emerald-900">Mudah</h3>
+                        <p class="text-base text-slate-700 font-bold mt-1">Urutan <b>3 Gambar</b></p>
+                        <span class="inline-block mt-2 text-xs bg-emerald-200 text-emerald-900 font-black px-3 py-1 rounded-xl border border-emerald-400">4 Pilihan Kartu</span>
+                    </div>
+                </button>
+
+                <!-- Medium -->
+                <button onclick="startGame('sedang')" class="p-5 rounded-3xl bg-gradient-to-b from-amber-50 to-amber-100/60 hover:from-amber-100 hover:to-amber-200/80 border-4 border-amber-400 color-shadow-amber card-btn flex flex-col items-center text-center space-y-3 text-amber-950 group">
+                    <div class="w-20 h-20 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-4xl font-black shadow-md border-2 border-white group-hover:scale-110 transition">
+                        🌿
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-black text-amber-900">Sedang</h3>
+                        <p class="text-base text-slate-700 font-bold mt-1">Urutan <b>4 Gambar</b></p>
+                        <span class="inline-block mt-2 text-xs bg-amber-200 text-amber-900 font-black px-3 py-1 rounded-xl border border-amber-400">5 Pilihan Kartu</span>
+                    </div>
+                </button>
+
+                <!-- Hard -->
+                <button onclick="startGame('sulit')" class="p-5 rounded-3xl bg-gradient-to-b from-rose-50 to-rose-100/60 hover:from-rose-100 hover:to-rose-200/80 border-4 border-rose-400 color-shadow-rose card-btn flex flex-col items-center text-center space-y-3 text-rose-950 group">
+                    <div class="w-20 h-20 rounded-2xl bg-rose-500 text-white flex items-center justify-center text-4xl font-black shadow-md border-2 border-white group-hover:scale-110 transition">
+                        🌳
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-black text-rose-900">Sulit</h3>
+                        <p class="text-base text-slate-700 font-bold mt-1">Urutan <b>5-6 Gambar</b></p>
+                        <span class="inline-block mt-2 text-xs bg-rose-200 text-rose-900 font-black px-3 py-1 rounded-xl border border-rose-400">7 Pilihan Kartu</span>
+                    </div>
+                </button>
+            </div>
+
+            <button onclick="goToMenu()" class="mt-4 px-6 py-3.5 rounded-2xl bg-white hover:bg-slate-100 text-slate-700 font-extrabold text-base card-btn border-2 border-slate-300 depth-shadow-lg">
+                ← Kembali ke Menu Utama
+            </button>
+        </section>
+
+        <!-- SCREEN 3: GAMEPLAY BOARD -->
+        <section id="screenGame" class="hidden w-full flex-col items-center space-y-4">
+            
+            <!-- Game Top Status Bar -->
+            <div class="w-full flex items-center justify-between bg-white/90 backdrop-blur-sm px-4 py-3 rounded-2xl border-2 border-slate-200 depth-shadow-lg">
+                <div class="flex items-center space-x-2">
+                    <span id="gameLevelBadge" class="px-3.5 py-1.5 bg-emerald-500 text-white rounded-xl text-sm font-black uppercase shadow-sm">
+                        Mudah
+                    </span>
+                    <span id="gameStageCounter" class="text-sm font-black text-slate-600 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                        Soal #1
+                    </span>
+                </div>
+
+                <!-- Helper Buttons Bar -->
+                <div class="flex items-center space-x-2">
+                    <button onclick="speakInstruction()" class="px-3 py-1.5 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-900 text-xs sm:text-sm font-extrabold transition flex items-center space-x-1 border border-indigo-300">
+                        <span>🗣️</span>
+                        <span class="hidden sm:inline">Petunjuk Lisan</span>
+                    </button>
+                    
+                    <button id="btnReplay" onclick="replaySequence()" class="px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs sm:text-sm font-extrabold transition flex items-center space-x-1 border border-amber-300">
+                        <span>🔄</span>
+                        <span class="hidden sm:inline">Ulangi Urutan</span>
+                    </button>
+
+                    <button id="btnResetSlots" onclick="resetUserSlots()" class="px-3 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-900 text-xs sm:text-sm font-extrabold transition flex items-center space-x-1 border border-rose-300 hidden">
+                        <span>↩️</span>
+                        <span class="hidden sm:inline">Coba Lagi</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Narrator Banner Caption Text Box -->
+            <div class="w-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white p-4 rounded-2xl depth-shadow-lg flex items-center justify-between space-x-3 border-2 border-white">
+                <div class="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center text-2xl shrink-0 border border-white/40">
+                    📢
+                </div>
+                <p id="captionText" class="text-base sm:text-lg font-black flex-1 text-left leading-snug">
+                    Perhatikan gambar yang muncul dan ingat urutannya!
+                </p>
+            </div>
+
+            <!-- PHASE 1: SEQUENTIAL DISPLAY BOX (MEMORIZATION) -->
+            <div id="phaseMemorize" class="w-full flex flex-col items-center justify-center py-4">
+                <!-- Large Animated Display Card Container -->
+                <div id="memCardBox" class="w-60 h-72 sm:w-72 sm:h-80 bg-white rounded-3xl border-4 border-emerald-400 color-shadow-emerald flex flex-col items-center justify-center p-6 space-y-4 transition-all duration-300 transform scale-100">
+                    <div id="memCardSvg" class="w-36 h-36 sm:w-44 sm:h-44 flex items-center justify-center">
+                        <!-- SVG dynamically rendered here -->
+                        <span class="text-6xl">❓</span>
+                    </div>
+                    <span id="memCardLabel" class="text-2xl sm:text-3xl font-black text-slate-800 tracking-wide text-center">Bersiap...</span>
+                </div>
+                
+                <!-- Progress Indicator Dots -->
+                <div id="memDotsContainer" class="flex items-center justify-center space-x-2.5 mt-6">
+                    <!-- Dots dynamically generated -->
+                </div>
+            </div>
+
+            <!-- PHASE 2: ANSWERING SLOTS & CHOICE CARDS -->
+            <div id="phaseAnswer" class="hidden w-full flex-col items-center space-y-5 py-2">
+                
+                <!-- TOP SLOT ATTACHMENT BOARD -->
+                <div class="w-full bg-slate-900/5 p-4 sm:p-5 rounded-3xl border-2 border-slate-300">
+                    <div class="text-center mb-3">
+                        <span class="text-xs sm:text-sm font-black uppercase text-slate-600 tracking-wider bg-white px-4 py-1 rounded-full border border-slate-300 shadow-sm">
+                            📌 Tempelkan Gambar Sesuai Urutannya:
+                        </span>
+                    </div>
+
+                    <!-- Target Slots Flex Container -->
+                    <div id="targetSlotsContainer" class="flex flex-wrap items-center justify-center gap-2.5 sm:gap-4">
+                        <!-- Slots generated dynamically -->
+                    </div>
+                </div>
+
+                <!-- BOTTOM CHOICE CARDS BOARD -->
+                <div class="w-full space-y-2">
+                    <div class="text-center">
+                        <span class="text-xs sm:text-sm font-black uppercase text-slate-600 tracking-wider">
+                            Pilihan Gambar (Sentuh Untuk Menempelkan):
+                        </span>
+                    </div>
+
+                    <div id="choiceCardsContainer" class="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
+                        <!-- Choice cards generated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- MODAL: CARA BERMAIN -->
+    <div id="modalInstructions" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-lg rounded-3xl p-6 sm:p-8 depth-shadow-lg space-y-5 border-4 border-emerald-300">
+            <div class="flex items-center justify-between border-b pb-3">
+                <h3 class="text-2xl font-black text-slate-800 flex items-center space-x-2">
+                    <span>📖</span> <span>Cara Bermain</span>
+                </h3>
+                <button onclick="closeInstructionsModal()" class="w-10 h-10 rounded-full bg-slate-100 text-slate-700 font-black hover:bg-slate-200 flex items-center justify-center text-lg">✕</button>
+            </div>
+
+            <ol class="space-y-3.5 text-slate-800 text-base font-bold">
+                <li class="flex items-start space-x-3">
+                    <span class="w-8 h-8 rounded-full bg-emerald-500 text-white font-black flex items-center justify-center shrink-0 text-base shadow">1</span>
+                    <span><b>Perhatikan Gambar:</b> Beberapa gambar berwarna akan muncul berurutan satu per satu lengkap dengan suara namanya.</span>
+                </li>
+                <li class="flex items-start space-x-3">
+                    <span class="w-8 h-8 rounded-full bg-emerald-500 text-white font-black flex items-center justify-center shrink-0 text-base shadow">2</span>
+                    <span><b>Ingat Urutannya:</b> Hafalkan urutan gambar yang baru saja tampil.</span>
+                </li>
+                <li class="flex items-start space-x-3">
+                    <span class="w-8 h-8 rounded-full bg-emerald-500 text-white font-black flex items-center justify-center shrink-0 text-base shadow">3</span>
+                    <span><b>Tempelkan Gambar:</b> Sentuh kartu pilihan di bawah untuk menempelkannya ke dalam <b>Slot 1, Slot 2, dst.</b></span>
+                </li>
+                <li class="flex items-start space-x-3">
+                    <span class="w-8 h-8 rounded-full bg-emerald-500 text-white font-black flex items-center justify-center shrink-0 text-base shadow">4</span>
+                    <span><b>Ubah Jawaban:</b> Jika salah menempel, sentuh gambar yang berada di slot untuk melepasnya kembali.</span>
+                </li>
+            </ol>
+
+            <button onclick="closeInstructionsModal()" class="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xl card-btn color-shadow-emerald">
+                Paham & Tutup
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL: TENTANG GAME -->
+    <div id="modalAbout" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-md rounded-3xl p-6 sm:p-8 depth-shadow-lg space-y-4 text-center border-4 border-slate-300">
+            <div class="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-600 text-4xl font-bold flex items-center justify-center mx-auto border-2 border-emerald-300">
+                👵👴
+            </div>
+            <h3 class="text-2xl font-black text-slate-800">INGAT URUTANNYA</h3>
+            <p class="text-slate-700 text-base font-medium leading-relaxed">
+                Game edukasi memori digital yang dirancang khusus untuk lansia guna melatih memori kerja dan daya ingat jangka pendek melalui stimulasi visual berwarna serta bantuan panduan suara narator Bahasa Indonesia.
+            </p>
+            <button onclick="closeAboutModal()" class="w-full py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-900 text-white font-extrabold card-btn">
+                Tutup
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL: PAUSE / JEDA -->
+    <div id="modalPause" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 depth-shadow-lg text-center space-y-4 border-4 border-slate-300">
+            <h3 class="text-2xl font-black text-slate-800">Permainan Dijeda ⏸️</h3>
+            <p class="text-base text-slate-600 font-bold">Silakan istirahat sejenak. Tekan tombol di bawah untuk melanjutkan.</p>
+            <div class="space-y-2.5">
+                <button onclick="closePauseModal()" class="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg card-btn shadow-md">
+                    ▶️ Lanjutkan Bermain
+                </button>
+                <button onclick="goToLevelSelect()" class="w-full py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-base card-btn">
+                    Ganti Level
+                </button>
+                <button onclick="goToMenu()" class="w-full py-3 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-800 font-extrabold text-base card-btn">
+                    Menu Utama
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: RESULT FEEDBACK -->
+    <div id="modalResult" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-md rounded-3xl p-6 sm:p-8 depth-shadow-lg text-center space-y-5 border-4 border-white">
+            <div id="resultIconBox" class="w-24 h-24 rounded-full flex items-center justify-center text-6xl mx-auto shadow-inner">
+                🌟
+            </div>
+
+            <div class="space-y-1">
+                <h3 id="resultTitle" class="text-3xl font-black text-slate-800">
+                    Bagus Sekali!
+                </h3>
+                <p id="resultSubtitle" class="text-slate-600 text-base font-bold">
+                    Jawaban kamu benar.
+                </p>
+            </div>
+
+            <div id="resultActions" class="space-y-2.5 pt-2">
+                <!-- Buttons rendered dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="w-full text-center py-2 text-xs font-black text-slate-500">
+        INGAT URUTANNYA &copy; Game Digital Lansia
+    </footer>
+
+    <script>
+        /* ==========================================================================
+           1. RICH COLORFUL SVG ITEM POOL DEFINITION
+           ========================================================================== */
+        const COLORFUL_ITEMS = [
+            {
+                id: 'apel',
+                name: 'Apel',
+                bgGradient: 'from-red-100 to-rose-200 border-red-400',
+                svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                    <defs>
+                        <radialGradient id="gradApel" cx="35%" cy="35%" r="65%">
+                            <stop offset="0%" stop-color="#ff6b6b"/>
+                            <stop offset="50%" stop-color="#ee5253"/>
+                            <stop offset="100%" stop-color="#10ac84" stop-opacity="0.2"/>
+                            <stop offset="100%" stop-color="#100000"/>
+                        </radialGradient>
+                    </defs>
+                    <path d="M50 25 C30 10 12 25 15 58 C18 85 45 92 50 90 C55 92 82 85 85 58 C88 25 70 10 50 25 Z" fill="url(#gradApel)"/>
+                    <path d="M50 25 Q55 12 62 8" stroke="#5d4037" stroke-width="5" stroke-linecap="round" fill="none"/>
+                    <path d="M52 18 Q72 10 68 26 Z" fill="#2ed573"/>
+                    <ellipse cx="36" cy="42" rx="6" ry="14" fill="#ffffff" opacity="0.6" transform="rotate(-25 36 42)"/>
+                </svg>`
+            },
+            {
+                id: 'pisang',
+                name: 'Pisang',
+                bgGradient: 'from-amber-100 to-yellow-200 border-amber-400',
+                svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                    <defs>
+                        <linearGradient id="gradPisang" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#ffeaa7"/>
+                            <stop offset="50%" stop-color="#fdcb6e"/>
+                            <stop offset="100%" stop-color="#e17055"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M22 72 Q38 92 78 72 Q88 42 82 22 Q72 28 72 38 Q72 68 28 58 Z" fill="url(#gradPisang)"/>
+                    <path d="M82 22 L86 14" stroke="#6c5ce7" stroke-dasharray="0" stroke-width="6" stroke-linecap="round"/>
+                    <path d="M22 72 Q18 75 14 74" stroke="#d63031" stroke-width="4" stroke-linecap="round"/>
+                    <path d="M35 62 Q55 78 76 50" stroke="#ffffff" stroke-width="3" fill="none" opacity="0.6"/>
+                </svg>`
+            },
+            {
+                id: 'jeruk',
+                name: 'Jeruk',
+                bgGradient: 'from-orange-100 to-amber-200 border-orange-400',
+                svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                    <defs>
+                        <radialGradient id="gradJeruk" cx="35%" cy="35%" r="65%">
+                            <stop offset="0%" stop-color="#ffbe76"/>
+                            <stop offset="60%" stop-color="#ff7979"/>
+                            <stop offset="100%" stop-color="#badc58"/>
+                        </radialGradient>
+                    </defs>
+                    <circle cx="50" cy="55" r="35" fill="url(#gradJeruk)"/>
+                    <circle cx="42" cy="40" r="3" fill="#ffffff" opacity="0.6"/>
+                    <path d="M50 20 Q55 10 60 8" stroke="#5d4037" stroke-width="5" stroke-linecap="round" fill="none"/>
+                    <path d="M52 16 Q72 10 68 24 Z" fill="#6ab04c"/>
+                </svg>`
+            },
+            {
+                id: 'mangga',
+                name: 'Mangga',
+                bgGradient: 'from-amber-100 to-orange-200 border-amber-400',
+                svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                    <defs>
+                        <linearGradient id="gradMangga" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#badc58"/>
+                            <stop offset="40%" stop-color="#f6e58d"/>
+                            <stop offset="80%" stop-color="#ffbe76"/>
+                            <stop offset="100%" stop-color="#ff7979"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M42 22 C22 32 20 72 45 88 C72 98 88 72 82 42 C76 22 58 16 42 22 Z" fill="url(#gradMangga)"/>
+                    <path d="M45 22 Q50 12 55 8" stroke="#5d4037" stroke-width="5" stroke-linecap="round" fill="none"/>
+                    <ellipse cx="38" cy="40" rx="5" ry="12" fill="#ffffff" opacity="0.5" transform="rotate(-20 38 40)"/>
+                </svg>`
+            },
+            {
+                id: 'bunga',
+                name: 'Bunga',
+                bgGradient: 'from-pink-100 to-rose-200 border-pink-400',
+                svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                    <g fill="#ff7979">
+                        <circle cx="50" cy="28" r="16"/>
+                        <circle cx="72" cy="50" r="16"/>
+                        <circle cx="50" cy="72" r="16"/>
+                        <circle cx="28" cy="50" r="16"/>
+                        <circle cx="35" cy="35" r="16" fill="#e056fd"/>
+                        <circle cx="65" cy="35" r="16" fill="#e056fd"/>
+                        <circle cx="65" cy="65" r="16" fill="#e056fd"/>
+                        <circle cx="35" cy="65" r="16" fill="#e056fd"/>
+                    </g>
+                    <circle cx="50" cy="50" r="18" fill="#f6e58d" stroke="#f0932b" stroke-width="4"/>
+                </svg>`
+            },
+            {
+                id: 'ikan',
+                name: 'Ikan',
+                bgGradient: 'from-sky-100 to-blue-200 border-sky-400',
+                svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                    <defs>
+                        <linearGradient id="gradIkan" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#7ed6df"/>
+                            <stop offset="100%" stop-color="#e056fd"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M18 50 Q48 18 82 50 Q48 82 18 50 Z" fill="url(#gradIkan)"/>
+                    <polygon points="18,50 5,28 5,72" fill="#ffbe76"/>
+                    <circle cx="68" cy="42" r="5" fill="#ffffff"/>
+                    <circle cx="69" cy="42" r="2.5" fill="#130f40"/>
+                    <path d="M40 38 Q50 50 40 62" stroke="#ffffff" stroke-width="3" fill="none" opacity="0.6"/>
+                </svg>`
+            },
+            {
+                id: 'kucing',
+                name: 'Kucing',
+                bgGradient: 'from-orange-100 to-amber-200 border-orange-300',
+                svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                    <circle cx="50" cy="55" r="32" fill="#ffbe76"/>
+                    <polygon points="22,35 34,12 46,30" fill="#ffbe76"/>
+                    <polygon points="26,33 34,18 42,30" fill="#ff7979"/>
+                    <polygon points="54,30 66,12 78,35" fill="#ffbe76"/>
+                    <polygon points="58,30 66,18 74,33" fill="#ff7979"/>
+                    <circle cx="38" cy="50" r="5" fill="#222f3e"/>
+                    <circle cx="62" cy="50" r="5" fill="#222f3e"/>
+                    <polygon points="46,60 54,60 50,65" fill="#ff7979"/>
+                    <path d="M40 68 Q50 74 60 68" stroke="#222f3e" stroke-width="3" fill="none"/>
+                </svg>`
+            },
+            {
+                id: 'rumah',
+                name: 'Rumah',
+                bgGradient: 'from-emerald-100 to-teal-200 border-emerald-400',
+                svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                    <polygon points="50,15 12,48 88,48" fill="#ff7979"/>
+                    <rect x="22" y="48" width="56" height="42" fill="#f6e58d" rx="2"/>
+                    <rect x="42" y="62" width="16" height="28" fill="#ffbe76"/>
+                    <rect x="28" y="55" width="10" height="12" fill="#7ed6df"/>
+                    <rect x="62" y="55" width="10" height="12" fill="#7ed6df"/>
+                </svg>`
+            },
+            {
+                id: 'topi',
+                name: 'Topi',
+                bgGradient: 'from-purple-100 to-indigo-200 border-purple-400',
+                svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                    <path d="M10 72 Q50 60 90 72 Q50 84 10 72 Z" fill="#6c5ce7"/>
+                    <path d="M28 70 C28 32 72 32 72 70 Z" fill="#a29bfe"/>
+                    <rect x="28" y="60" width="44" height="10" fill="#fdcb6e"/>
+                </svg>`
+            },
+            {
+                id: 'sepatu',
+                name: 'Sepatu',
+                bgGradient: 'from-cyan-100 to-sky-200 border-cyan-400',
+                svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                    <path d="M12 62 Q18 42 42 42 L62 52 L88 52 Q92 78 72 78 L12 78 Z" fill="#0984e3"/>
+                    <rect x="12" y="72" width="76" height="8" rx="4" fill="#ffffff"/>
+                    <line x1="38" y1="48" x2="48" y2="58" stroke="#ffffff" stroke-width="4"/>
+                    <line x1="48" y1="48" x2="58" y2="58" stroke="#ffffff" stroke-width="4"/>
+                </svg>`
+            },
+            {
+                id: 'jam',
+                name: 'Jam',
+                bgGradient: 'from-teal-100 to-emerald-200 border-teal-400',
+                svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                    <circle cx="50" cy="50" r="38" fill="#00b894"/>
+                    <circle cx="50" cy="50" r="30" fill="#ffffff"/>
+                    <line x1="50" y1="50" x2="50" y2="28" stroke="#2d3436" stroke-width="5" stroke-linecap="round"/>
+                    <line x1="50" y1="50" x2="68" y2="50" stroke="#d63031" stroke-width="4" stroke-linecap="round"/>
+                    <circle cx="50" cy="50" r="4" fill="#2d3436"/>
+                </svg>`
+            },
+            {
+                id: 'balon',
+                name: 'Balon',
+                bgGradient: 'from-rose-100 to-amber-200 border-rose-300',
+                svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                    <ellipse cx="38" cy="42" rx="18" ry="22" fill="#ff7979"/>
+                    <ellipse cx="62" cy="40" rx="18" ry="22" fill="#7ed6df"/>
+                    <ellipse cx="50" cy="52" rx="20" ry="25" fill="#f6e58d"/>
+                    <path d="M50 77 Q45 90 40 95" stroke="#2d3436" stroke-width="2" fill="none"/>
+                </svg>`
+            },
+            {
+                id: 'kupukupu',
+                name: 'Kupu-kupu',
+                bgGradient: 'from-fuchsia-100 to-pink-200 border-fuchsia-400',
+                svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                    <path d="M50 50 Q20 20 22 50 Q20 80 50 50 Z" fill="#e056fd"/>
+                    <path d="M50 50 Q80 20 78 50 Q80 80 50 50 Z" fill="#e056fd"/>
+                    <ellipse cx="50" cy="50" rx="4" ry="20" fill="#6c5ce7"/>
+                    <circle cx="36" cy="38" r="6" fill="#f6e58d"/>
+                    <circle cx="64" cy="38" r="6" fill="#f6e58d"/>
+                </svg>`
+            },
+            {
+                id: 'bintang',
+                name: 'Bintang',
+                bgGradient: 'from-amber-100 to-yellow-300 border-amber-400',
+                svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                    <polygon points="50,10 63,38 92,38 68,56 78,85 50,66 22,85 32,56 8,38 37,38" fill="#f1c40f" stroke="#f39c12" stroke-width="4"/>
+                </svg>`
+            }
+        ];
+
+        const LEVEL_CONFIG = {
+            mudah: { name: 'Mudah', sequenceLength: 3, totalChoices: 4 },
+            sedang: { name: 'Sedang', sequenceLength: 4, totalChoices: 5 },
+            sulit: { name: 'Sulit', sequenceLength: 5, totalChoices: 7 }
+        };
+
+        /* ==========================================================================
+           2. STATE MANAGEMENT & WEB SPEECH SYNTHESIS ENGINE
+           ========================================================================== */
+        let currentDifficulty = 'mudah';
+        let currentSequence = [];
+        let choiceCards = [];
+        let userSlots = [];
+        let currentStageNumber = 1;
+        let score = 0;
+        let isMemorizePhase = true;
+        let isAudioMuted = false;
+        let sequenceTimer = null;
+
+        // Caption update helper
+        function setCaption(text) {
+            document.getElementById('captionText').innerText = text;
+        }
+
+        // Web Speech API Voice Narrator
+        function speakText(text, onEndCallback = null) {
+            setCaption(text);
+
+            if (isAudioMuted || !('speechSynthesis' in window)) {
+                if (onEndCallback) setTimeout(onEndCallback, 1400);
+                return;
+            }
+
+            window.speechSynthesis.cancel(); // Stop prior speech
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'id-ID';
+            utterance.rate = 0.82; // Friendly relaxed speed for elderly
+            utterance.pitch = 1.0;
+
+            utterance.onend = () => {
+                if (onEndCallback) onEndCallback();
+            };
+            utterance.onerror = () => {
+                if (onEndCallback) onEndCallback();
+            };
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function toggleAudio() {
+            isAudioMuted = !isAudioMuted;
+            const icon = document.getElementById('audioIcon');
+            const text = document.getElementById('audioText');
+            if (isAudioMuted) {
+                icon.textContent = '🔇';
+                text.textContent = 'Suara: MATI';
+                window.speechSynthesis.cancel();
+            } else {
+                icon.textContent = '🔊';
+                text.textContent = 'Suara: AKTIF';
+                speakText("Suara narator diaktifkan.");
+            }
+        }
+
+        /* ==========================================================================
+           3. SCREEN NAVIGATION
+           ========================================================================== */
+        function goToMenu() {
+            window.speechSynthesis.cancel();
+            clearTimeout(sequenceTimer);
+            document.getElementById('screenMenu').classList.remove('hidden');
+            document.getElementById('screenLevel').classList.add('hidden');
+            document.getElementById('screenGame').classList.add('hidden');
+            document.getElementById('btnPauseGame').classList.add('hidden');
+            closePauseModal();
+            closeResultModal();
+            speakText("Selamat datang di permainan Ingat Urutannya. Mari kita berlatih mengingat bersama.");
+        }
+
+        function goToLevelSelect() {
+            window.speechSynthesis.cancel();
+            clearTimeout(sequenceTimer);
+            document.getElementById('screenMenu').classList.add('hidden');
+            document.getElementById('screenLevel').classList.remove('hidden');
+            document.getElementById('screenGame').classList.add('hidden');
+            document.getElementById('btnPauseGame').classList.add('hidden');
+            speakText("Silakan pilih tingkat kesulitan permainan.");
+        }
+
+        /* ==========================================================================
+           4. GAME LOGIC & SEQUENCER
+           ========================================================================== */
+        function startGame(difficulty) {
+            currentDifficulty = difficulty;
+            currentStageNumber = 1;
+            score = 0;
+            document.getElementById('screenLevel').classList.add('hidden');
+            document.getElementById('screenGame').classList.remove('hidden');
+            document.getElementById('screenGame').classList.add('flex');
+            document.getElementById('btnPauseGame').classList.remove('hidden');
+
+            setupStage();
+        }
+
+        function setupStage() {
+            clearTimeout(sequenceTimer);
+            window.speechSynthesis.cancel();
+
+            const config = LEVEL_CONFIG[currentDifficulty];
+            document.getElementById('gameLevelBadge').textContent = config.name;
+            document.getElementById('gameStageCounter').textContent = `Soal #${currentStageNumber}`;
+
+            // Pick sequence items randomly
+            const shuffledPool = [...COLORFUL_ITEMS].sort(() => 0.5 - Math.random());
+            currentSequence = shuffledPool.slice(0, config.sequenceLength);
+
+            // Prepare choices: correct sequence + random decoys
+            let decoyPool = COLORFUL_ITEMS.filter(item => !currentSequence.some(s => s.id === item.id));
+            decoyPool = decoyPool.sort(() => 0.5 - Math.random());
+            const neededDecoys = config.totalChoices - currentSequence.length;
+            const chosenDecoys = decoyPool.slice(0, neededDecoys);
+
+            choiceCards = [...currentSequence, ...chosenDecoys].sort(() => 0.5 - Math.random());
+
+            // Reset user slots
+            userSlots = new Array(config.sequenceLength).fill(null);
+
+            startMemorizePhase();
+        }
+
+        function startMemorizePhase() {
+            isMemorizePhase = true;
+            document.getElementById('phaseMemorize').classList.remove('hidden');
+            document.getElementById('phaseAnswer').classList.add('hidden');
+            document.getElementById('btnReplay').classList.add('hidden');
+            document.getElementById('btnResetSlots').classList.add('hidden');
+
+            // Render memory dots indicator
+            const dotsContainer = document.getElementById('memDotsContainer');
+            dotsContainer.innerHTML = '';
+            currentSequence.forEach((_, idx) => {
+                const dot = document.createElement('div');
+                dot.id = `memDot-${idx}`;
+                dot.className = 'w-4 h-4 rounded-full bg-slate-300 transition-all duration-300';
+                dotsContainer.appendChild(dot);
+            });
+
+            speakText("Perhatikan gambar yang muncul satu per satu.", () => {
+                playSequenceAnimation(0);
+            });
+        }
+
+        function playSequenceAnimation(index) {
+            if (index >= currentSequence.length) {
+                // Sequence finished, transition to Answer Phase
+                sequenceTimer = setTimeout(() => {
+                    startAnswerPhase();
+                }, 800);
+                return;
+            }
+
+            const item = currentSequence[index];
+            const cardBox = document.getElementById('memCardBox');
+            const svgBox = document.getElementById('memCardSvg');
+            const labelEl = document.getElementById('memCardLabel');
+
+            // Highlight dot
+            currentSequence.forEach((_, idx) => {
+                const dot = document.getElementById(`memDot-${idx}`);
+                if (idx === index) {
+                    dot.className = 'w-7 h-4 rounded-full bg-emerald-500 scale-125 shadow';
+                } else if (idx < index) {
+                    dot.className = 'w-4 h-4 rounded-full bg-emerald-300';
+                } else {
+                    dot.className = 'w-4 h-4 rounded-full bg-slate-300';
+                }
+            });
+
+            // Populate card & animate
+            cardBox.className = `w-60 h-72 sm:w-72 sm:h-80 bg-gradient-to-b ${item.bgGradient} rounded-3xl border-4 depth-shadow-lg flex flex-col items-center justify-center p-6 space-y-4 animate-pop-in`;
+            svgBox.innerHTML = item.svg;
+            labelEl.textContent = item.name;
+
+            speakText(item.name, () => {
+                sequenceTimer = setTimeout(() => {
+                    cardBox.classList.add('opacity-40');
+                    sequenceTimer = setTimeout(() => {
+                        playSequenceAnimation(index + 1);
+                    }, 400);
+                }, 1200);
+            });
+        }
+
+        function replaySequence() {
+            window.speechSynthesis.cancel();
+            clearTimeout(sequenceTimer);
+            startMemorizePhase();
+        }
+
+        /* ==========================================================================
+           5. PHASE 2 - ANSWERING BOARD & SLOT ATTACHMENTS
+           ========================================================================== */
+        function startAnswerPhase() {
+            isMemorizePhase = false;
+            document.getElementById('phaseMemorize').classList.add('hidden');
+            document.getElementById('phaseAnswer').classList.remove('hidden');
+            document.getElementById('phaseAnswer').classList.add('flex');
+            document.getElementById('btnReplay').classList.remove('hidden');
+            document.getElementById('btnResetSlots').classList.remove('hidden');
+
+            speakText("Sekarang, silakan ingat kembali urutan gambar tadi dan tempelkan gambar sesuai urutannya.");
+
+            renderSlotsAndChoices();
+        }
+
+        function renderSlotsAndChoices() {
+            // Render Target Slots
+            const slotsContainer = document.getElementById('targetSlotsContainer');
+            slotsContainer.innerHTML = '';
+
+            userSlots.forEach((slotItem, index) => {
+                const slotBtn = document.createElement('button');
+                slotBtn.onclick = () => onSlotClick(index);
+
+                if (slotItem === null) {
+                    slotBtn.className = "w-20 h-28 sm:w-28 sm:h-36 rounded-2xl slot-border-empty flex flex-col items-center justify-center p-2 card-btn space-y-1 shadow-inner";
+                    slotBtn.innerHTML = `
+                        <span class="text-xs font-black text-slate-500 uppercase">Slot ${index + 1}</span>
+                        <span class="text-3xl opacity-40">➕</span>
+                    `;
+                } else {
+                    slotBtn.className = `w-20 h-28 sm:w-28 sm:h-36 rounded-2xl bg-gradient-to-b ${slotItem.bgGradient} vibrant-card-border flex flex-col items-center justify-center p-2 card-btn animate-pop-in`;
+                    slotBtn.innerHTML = `
+                        <span class="text-[10px] sm:text-xs font-black text-slate-700 bg-white/80 px-2 py-0.5 rounded-full mb-1">#${index + 1}</span>
+                        <div class="w-12 h-12 sm:w-16 sm:h-16">${slotItem.svg}</div>
+                        <span class="text-xs sm:text-sm font-black text-slate-900 mt-1">${slotItem.name}</span>
+                        <span class="text-[10px] text-rose-600 font-extrabold mt-0.5 bg-white/90 px-1.5 py-0.5 rounded-md">Lepas ✕</span>
+                    `;
+                }
+                slotsContainer.appendChild(slotBtn);
+            });
+
+            // Render Choice Cards
+            const choicesContainer = document.getElementById('choiceCardsContainer');
+            choicesContainer.innerHTML = '';
+
+            choiceCards.forEach((item) => {
+                const isUsed = userSlots.some(slot => slot && slot.id === item.id);
+
+                const choiceBtn = document.createElement('button');
+                choiceBtn.onclick = () => onChoiceClick(item);
+                choiceBtn.disabled = isUsed;
+
+                if (isUsed) {
+                    choiceBtn.className = "w-20 h-24 sm:w-24 sm:h-28 rounded-2xl bg-slate-200 border-2 border-slate-300 flex flex-col items-center justify-center p-2 opacity-35 cursor-not-allowed";
+                    choiceBtn.innerHTML = `
+                        <div class="w-10 h-10 sm:w-12 sm:h-12 grayscale opacity-60">${item.svg}</div>
+                        <span class="text-xs font-bold text-slate-500 mt-1">${item.name}</span>
+                    `;
+                } else {
+                    choiceBtn.className = `w-20 h-24 sm:w-24 sm:h-28 rounded-2xl bg-gradient-to-b ${item.bgGradient} vibrant-card-border flex flex-col items-center justify-center p-2 card-btn hover:scale-105`;
+                    choiceBtn.innerHTML = `
+                        <div class="w-12 h-12 sm:w-14 sm:h-14">${item.svg}</div>
+                        <span class="text-xs sm:text-sm font-black text-slate-900 mt-1">${item.name}</span>
+                    `;
+                }
+                choicesContainer.appendChild(choiceBtn);
+            });
+        }
+
+        function onChoiceClick(item) {
+            const emptyIndex = userSlots.findIndex(slot => slot === null);
+            if (emptyIndex === -1) return;
+
+            userSlots[emptyIndex] = item;
+            speakText(item.name);
+            renderSlotsAndChoices();
+
+            // Auto check when all slots filled
+            if (userSlots.every(slot => slot !== null)) {
+                setTimeout(() => {
+                    checkAnswer();
+                }, 500);
+            }
+        }
+
+        function onSlotClick(index) {
+            if (userSlots[index] !== null) {
+                userSlots[index] = null;
+                renderSlotsAndChoices();
+            }
+        }
+
+        function resetUserSlots() {
+            userSlots = new Array(currentSequence.length).fill(null);
+            renderSlotsAndChoices();
+            speakText("Slot pilihan telah dikosongkan.");
+        }
+
+        function speakInstruction() {
+            if (isMemorizePhase) {
+                speakText("Perhatikan gambar yang muncul dan ingat urutannya!");
+            } else {
+                speakText("Tempelkan gambar sesuai urutannya ke dalam slot yang tersedia.");
+            }
+        }
+
+        /* ==========================================================================
+           6. CHECK ANSWER & MODALS
+           ========================================================================== */
+        function checkAnswer() {
+            let isCorrect = true;
+            for (let i = 0; i < currentSequence.length; i++) {
+                if (!userSlots[i] || userSlots[i].id !== currentSequence[i].id) {
+                    isCorrect = false;
+                    break;
+                }
+            }
+
+            if (isCorrect) {
+                score += currentSequence.length * 10;
+                try {
+                    confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+                } catch(e) {}
+                showResultModal(true);
+            } else {
+                showResultModal(false);
+            }
+        }
+
+        function showResultModal(isCorrect) {
+            const modal = document.getElementById('modalResult');
+            const iconBox = document.getElementById('resultIconBox');
+            const titleEl = document.getElementById('resultTitle');
+            const subtitleEl = document.getElementById('resultSubtitle');
+            const actionsEl = document.getElementById('resultActions');
+
+            modal.classList.remove('hidden');
+
+            if (isCorrect) {
+                iconBox.className = "w-24 h-24 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-6xl mx-auto border-4 border-emerald-400";
+                iconBox.textContent = "🎉";
+                titleEl.textContent = "Bagus Sekali!";
+                titleEl.className = "text-3xl font-black text-emerald-900";
+                subtitleEl.textContent = `Jawaban kamu benar! Skor saat ini: ${score}`;
+
+                actionsEl.innerHTML = `
+                    <button onclick="nextStage()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-xl card-btn shadow-md border-2 border-white">
+                        Lanjut Soal Berikutnya ➔
+                    </button>
+                    <button onclick="goToLevelSelect()" class="w-full py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-base card-btn">
+                        Pilih Level Lain
+                    </button>
+                `;
+
+                speakText("Bagus sekali! Jawaban kamu benar.");
+            } else {
+                iconBox.className = "w-24 h-24 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-6xl mx-auto border-4 border-amber-400";
+                iconBox.textContent = "💪";
+                titleEl.textContent = "Mari Coba Lagi!";
+                titleEl.className = "text-3xl font-black text-amber-900";
+                subtitleEl.textContent = "Urutan belum tepat, tidak apa-apa!";
+
+                actionsEl.innerHTML = `
+                    <button onclick="retryCurrentStage()" class="w-full py-4 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xl card-btn shadow-md border-2 border-white">
+                        🔄 Ulangi Soal Ini
+                    </button>
+                    <button onclick="goToLevelSelect()" class="w-full py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-base card-btn">
+                        Pilih Level Lain
+                    </button>
+                `;
+
+                speakText("Tidak apa-apa, mari kita coba lagi.");
+            }
+        }
+
+        function closeResultModal() {
+            document.getElementById('modalResult').classList.add('hidden');
+        }
+
+        function nextStage() {
+            closeResultModal();
+            currentStageNumber++;
+            setupStage();
+        }
+
+        function retryCurrentStage() {
+            closeResultModal();
+            resetUserSlots();
+            replaySequence();
+        }
+
+        /* ==========================================================================
+           7. MODALS CONTROLS
+           ========================================================================== */
+        function openInstructionsModal() {
+            document.getElementById('modalInstructions').classList.remove('hidden');
+            speakText("Berikut panduan cara bermain game ingat urutannya.");
+        }
+        function closeInstructionsModal() {
+            document.getElementById('modalInstructions').classList.add('hidden');
+        }
+
+        function openAboutModal() {
+            document.getElementById('modalAbout').classList.remove('hidden');
+        }
+        function closeAboutModal() {
+            document.getElementById('modalAbout').classList.add('hidden');
+        }
+
+        function openPauseModal() {
+            document.getElementById('modalPause').classList.remove('hidden');
+        }
+        function closePauseModal() {
+            document.getElementById('modalPause').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
